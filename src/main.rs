@@ -4,33 +4,6 @@ use windows_sys::{
 	Win32::UI::WindowsAndMessaging::*
 };
 
-macro_rules! wstr {
-	($s:literal) => {{
-		const INPUT: &[u8] = $s.as_bytes();
-		const OUTPUT_LEN: usize = utf16_len(INPUT) + 1;
-		const OUTPUT: &[u16; OUTPUT_LEN] = {
-			let mut buffer = [0; OUTPUT_LEN];
-			let mut input_pos = 0;
-			let mut output_pos = 0;
-			while let Some((mut code_point, new_pos)) = decode_utf8_char(INPUT, input_pos) {
-				input_pos = new_pos;
-				if code_point <= 0xffff {
-					buffer[output_pos] = code_point as u16;
-					output_pos += 1;
-				} else {
-					code_point -= 0x10000;
-					buffer[output_pos] = 0xd800 + (code_point >> 10) as u16;
-					output_pos += 1;
-					buffer[output_pos] = 0xdc00 + (code_point & 0x3ff) as u16;
-					output_pos += 1;
-				}
-			}
-			&{ buffer }
-		};
-		WStr::with_u16s(OUTPUT)
-	}};
-}
-
 // null 終端を持つ文字列
 struct WStr {
 	len: usize,
@@ -77,13 +50,41 @@ impl WStr {
 }
 
 
+const fn test0(str: &'static str) -> usize {
+	str.len()
+}
+
+macro_rules! wstr {
+	($vname:ident, $str:literal) => {
+		const INPUT: &[u8] = $str.as_bytes();
+		const OUTPUT_LEN: usize = utf16_len(INPUT) + 1;
+		const $vname: [u16; OUTPUT_LEN] = {
+			let mut ret_ary = [0; OUTPUT_LEN];
+			let mut idx_src = 0;
+			let mut idx_dst = 0;
+			while let Some((mut code, idx_src_new)) = decode_utf8_char(INPUT, idx_src) {
+				idx_src = idx_src_new;
+				if code <= 0xffff {
+					ret_ary[idx_dst] = code as u16;
+					idx_dst += 1;
+				} else {
+					code -= 0x10000;
+					ret_ary[idx_dst] = 0xd800 + (code >> 10) as u16;
+					ret_ary[idx_dst + 1] = 0xdc00 + (code & 0x3ff) as u16;
+					idx_dst += 2;
+				}
+			}
+			ret_ary
+		};
+	}
+}
+
 fn main() {
 	unsafe {
-		let title = wstr!("こんにちは");
+//		let test1 = wstr1!("おはよう");
 		
-		println!("title.len -> {}", title.len());
-		println!("title.capacity -> {}", title.capacity());
+		wstr!(TEST, "おはよう");
 
-		MessageBoxW(std::ptr::null_mut(), w!("こんにちは、世界"), title.cstr(), MB_OK);
+		MessageBoxW(std::ptr::null_mut(), w!("こんにちは、世界"), TEST.as_ptr(), MB_OK);
 	}
 }
