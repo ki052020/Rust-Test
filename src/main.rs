@@ -28,7 +28,7 @@ impl WStr {
 		}
 	}
 	
-	pub fn with_u16s(u16s: &[u16]) -> Self {
+	pub fn from_u(u16s: &[u16]) -> Self {
 		WStr {
 			len: u16s.len() - 1,
 			capacity: u16s.len(),
@@ -49,16 +49,14 @@ impl WStr {
 	}
 }
 
-
-const fn test0(str: &'static str) -> usize {
-	str.len()
-}
-
-macro_rules! wstr {
-	($vname:ident, $str:literal) => {
+macro_rules! u {
+	($str:literal) => {{
 		const INPUT: &[u8] = $str.as_bytes();
 		const OUTPUT_LEN: usize = utf16_len(INPUT) + 1;
-		const $vname: [u16; OUTPUT_LEN] = {
+		
+		// コンパイル時定数になるように const fn を利用しているけれど、
+		// const fn にする必要はないと思う。const OUTPUT = ... でよいかも？
+		const fn crt_output() -> [u16; OUTPUT_LEN] {
 			let mut ret_ary = [0; OUTPUT_LEN];
 			let mut idx_src = 0;
 			let mut idx_dst = 0;
@@ -75,16 +73,14 @@ macro_rules! wstr {
 				}
 			}
 			ret_ary
-		};
-	}
+		}
+		crt_output()
+	}};
 }
 
 fn main() {
 	unsafe {
-//		let test1 = wstr1!("おはよう");
-		
-		wstr!(TEST, "おはよう");
-
-		MessageBoxW(std::ptr::null_mut(), w!("こんにちは、世界"), TEST.as_ptr(), MB_OK);
+		let test = u!("おはよう");
+		MessageBoxW(std::ptr::null_mut(), w!("こんにちは、世界"), test.as_ptr(), MB_OK);
 	}
 }
