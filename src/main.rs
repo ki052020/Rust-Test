@@ -79,8 +79,11 @@ macro_rules! u {
 }
 
 fn main() {
+	// ??? test1 は正しく動作する。test2 は、動作が不安定
+	let test1 = u!("おはよう");
+//	let test2 = WStr::from_u(&u!("おはよう"));
 	unsafe {
-		let test = u!("おはよう");
-		MessageBoxW(std::ptr::null_mut(), w!("こんにちは、世界"), test.as_ptr(), MB_OK);
+		MessageBoxW(std::ptr::null_mut(), w!("こんにちは、世界"), test1.as_ptr(), MB_OK);
+//		MessageBoxW(std::ptr::null_mut(), w!("こんにちは、世界"), test2.cstr(), MB_OK);
 	}
 }
