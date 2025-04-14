@@ -1,15 +1,19 @@
+// macro というモジュール名は利用できなかったため、mcr.rs にしている
 
 // -------------------------------------------------------------
 #[macro_export]
 macro_rules! u {
 	($str:literal) => {{
 		const INPUT: &[u8] = $str.as_bytes();
-		const OUTPUT_LEN: usize = utf16_len(INPUT) + 1;
-		const OUTPUT: [u16; OUTPUT_LEN] = {
+		const OUTPUT_LEN: usize = windows_sys::core::utf16_len(INPUT) + 1;
+		
+		// コンパイル時定数になるように const fn を利用しているけれど、
+		// const fn にする必要はないと思う。const OUTPUT = ... でよいかも？
+		const fn crt_output() -> [u16; OUTPUT_LEN] {
 			let mut ret_ary = [0; OUTPUT_LEN];
 			let mut idx_src = 0;
 			let mut idx_dst = 0;
-			while let Some((mut code, idx_src_new)) = decode_utf8_char(INPUT, idx_src) {
+			while let Some((mut code, idx_src_new)) = windows_sys::core::decode_utf8_char(INPUT, idx_src) {
 				idx_src = idx_src_new;
 				if code <= 0xffff {
 					ret_ary[idx_dst] = code as u16;
@@ -22,8 +26,8 @@ macro_rules! u {
 				}
 			}
 			ret_ary
-		};
-		OUTPUT
+		}
+		crt_output()
 	}};
 }
 
